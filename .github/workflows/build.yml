@@ -1,0 +1,46 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the compiler
+      run: docker build . --file Dockerfile --tag arm-none-eabi-gcc:${{github.ref_name}}
+
+    - name: Zip and upload mingw build
+      run: |
+        mkdir -p output
+        docker run --rm -v ${{ github.workspace }}/output:/output arm-none-eabi-gcc:${{github.ref_name}} \
+          sh -c "zip -r /output/arm-gnu-toolchain-${{github.ref_name}}-mingw-w64-x86_64-arm-none-eabi.zip build-mingw-arm-none-eabi/install"
+       
+    - name: Zip and upload linux build
+      run: |
+        mkdir -p output
+        docker run --rm -v ${{ github.workspace }}/output:/output arm-none-eabi-gcc:${{github.ref_name}} \
+          sh -c "tar chzvf /output/arm-gnu-toolchain-${{github.ref_name}}-x86_64-arm-none-eabi.tar.gz build-arm-none-eabi/install"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: compiled-zip
+        compression-level: 0 # no compression
+        path: |
+          output/arm-gnu-toolchain-${{github.ref_name}}-mingw-w64-x86_64-arm-none-eabi.zip
+          output/arm-gnu-toolchain-${{github.ref_name}}-x86_64-arm-none-eabi.tar.gz
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/v')
+      with:
+        files: |
+          output/arm-gnu-toolchain-${{github.ref_name}}-mingw-w64-x86_64-arm-none-eabi.zip
+          output/arm-gnu-toolchain-${{github.ref_name}}-x86_64-arm-none-eabi.tar.gz
+      
