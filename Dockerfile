@@ -20,9 +20,9 @@ RUN apt-get -y update \
         python3 \
         python3-dev \
         texinfo \
-        # used in build-newlib-for-mingw-toolchain.sh
         rsync \
         mingw-w64 \
+        zip \
     && apt-get autoremove --purge -y \
     && apt-get autoclean -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
